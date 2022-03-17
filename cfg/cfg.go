@@ -6,18 +6,20 @@ import (
 	"io/ioutil"
 )
 
-type ConfigStruct struct {
-	Token     string `json : "Token"`
-	BotPrefix string `json : "BotPrefix"`
+type Config struct {
+	Token            string `json : "Token"`
+	BotPrefix        string `json : "BotPrefix"`
+	WebWatcherSource string `json : "WebWatchers"`
+	BotChannelName   string `json : "BotChannelName"`
 }
 
-func ReadConfig() (*ConfigStruct, error) {
+func ReadConfig() (*Config, error) {
 	fmt.Println("Reading config")
 	file, err := ioutil.ReadFile("./config.json")
 	if err != nil {
 		return nil, err
 	}
-	var cfg *ConfigStruct
+	var cfg *Config
 	err = json.Unmarshal(file, &cfg)
 	if err != nil {
 		return nil, err

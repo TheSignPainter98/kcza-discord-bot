@@ -16,7 +16,7 @@
 # vendor/
 
 # Use-specific JSON
-config.json
+*.json
 
 # Tag hl files
 types_*.taghl

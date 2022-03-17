@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"golang-discord-bot/bot"
 	"golang-discord-bot/cfg"
-	"os"
-	"os/signal"
 )
 
 func main() {
@@ -15,10 +13,11 @@ func main() {
 		return
 	}
 
-	bot.Start(conf)
+	kczaBot, err := bot.New(conf)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
-	fmt.Println("Bot running, hanging...")
-	hang := make(chan os.Signal, 1)
-	signal.Notify(hang, os.Interrupt)
-	<-hang
+	kczaBot.HandleActions()
 }
