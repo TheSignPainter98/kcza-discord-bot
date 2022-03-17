@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/alecthomas/participle/v2 v2.0.0-alpha7
 	github.com/bwmarrin/discordgo v0.24.0
 )
 

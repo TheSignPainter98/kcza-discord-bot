@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"golang-discord-bot/actions"
+	"golang-discord-bot/parse"
 	"net/http"
 	"strings"
 	"time"
@@ -33,9 +34,16 @@ func (g GeekHackWatcher) Watch(act chan actions.DiscordAction) {
 			continue
 		}
 
+		bbc, err := parse.BBCodeToMd(pageText)
+		if err != nil {
+			fmt.Println(err)
+			time.Sleep(retryBackoff)
+			continue
+		}
+
 		act <- actions.MessageAction{g.outputChannel, fmt.Sprintf("Geekhack update for %v!", g.Name)}
 		act <- actions.MessageAction{g.outputChannel, "This is another quite quick message"}
-		act <- actions.LongMessage(g.outputChannel, pageText)
+		act <- actions.LongMessage(g.outputChannel, bbc)
 		time.Sleep(5 * time.Minute)
 	}
 }
