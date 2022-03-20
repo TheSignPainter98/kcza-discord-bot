@@ -47,6 +47,22 @@ func TestBBCodeCode(t *testing.T) {
 	tagTest(t, "code", "`", "`")
 }
 
+func TestImgSimple(t *testing.T) {
+	imgLink := "https://kcza.net/img.png"
+	raw := fmt.Sprintf("[img]%s[/img]", imgLink)
+	md, err := BBCodeToMd(raw)
+	if err != nil && md != "" {
+		t.Fatalf("Expected either non-nil error or non-empty string and non-empty input")
+	}
+
+	if err == nil {
+		want := regexp.MustCompile(fmt.Sprintf(`!\[%s\]\(%s\)`, imgLink, imgLink))
+		if !want.MatchString(md) {
+			t.Fatalf("Incorrect output: expected %#v but got %#v", want, md)
+		}
+	}
+}
+
 func TestLinkSimple(t *testing.T) {
 	testLink := "https://kcza.net"
 	raw := fmt.Sprintf("[link]%s[/link]", testLink)

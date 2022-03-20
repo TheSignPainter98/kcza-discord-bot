@@ -121,6 +121,7 @@ func (t *BBTag) ToMd(b *strings.Builder) {
 	}
 	complicatedNameMap := map[string]complicatedMdifierFunc{
 		"link": makeLink,
+		"img":  makeImg,
 	}
 	if f, present := complicatedNameMap[*t.Name]; present {
 		t.Attrs.Attrs = make(map[string]string)
@@ -151,4 +152,12 @@ func makeLink(t *BBTag, b *strings.Builder) {
 		t.Body.ToMd(b)
 		b.WriteString(")")
 	}
+}
+
+func makeImg(t *BBTag, b *strings.Builder) {
+	b.WriteString("![")
+	t.Body.ToMd(b)
+	b.WriteString("](")
+	t.Body.ToMd(b)
+	b.WriteString(")")
 }
