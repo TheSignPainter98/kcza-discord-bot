@@ -1,3 +1,4 @@
+// NOTE: BBCode parsers exist for go, I just wanted to write one myself for my own interest
 package parse
 
 import (
@@ -16,26 +17,37 @@ type BBCode struct {
 }
 
 type BBElem struct {
-	Word *string `  @Word`
+	List *BBList `  @@`
 	Tag  *BBTag  `| @@`
+	Word *string `| (@Word | @Assign)`
+}
+
+type BBList struct {
+	Type  *string   `"[list" ("=" @Word)? "]"`
+	Items []*BBCode `( "[*]" @@ )* "[/" "list" "]"`
 }
 
 type BBTag struct {
-	Name *string `"[" @Word "]"`
-	// Attrs     []*BBAttr `@@* "]"`
-	Body      *BBCode `@@`
-	CloseName *string `"[/" @Word "]"`
+	Name     *string `"[" @Word`
+	Attrs    BBAttrs `@@ "]"`
+	Body     *BBCode `@@`
+	CloseTag *string `"[/" @Word "]"`
 }
 
-// type BBAttr struct {
-// 	Key   *string `@Word "="`
-// 	Value *string `@Word`
-// }
+type BBAttrs struct {
+	RawAttrs []*BBAttr `@@*`
+	Attrs    map[string]string
+}
+
+type BBAttr struct {
+	Key   *string `@Word "="`
+	Value *string `@Word`
+}
 
 func BBCodeToMd(bbcRaw string) (string, error) {
 	bbc, err := parseBBCode(bbcRaw)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	builder := new(strings.Builder)
 	bbc.ToMd(builder)
@@ -46,13 +58,14 @@ func parseBBCode(bbcRaw string) (*BBCode, error) {
 	bbcodeLexer := lexer.MustSimple([]lexer.Rule{
 		{"whitespace", `[\s\r\n]+`, nil}, // (Auto-ignores white-space)
 
-		{"OpenStartTag", `\[`, nil},
+		{"ListItem", `\[\*\]`, nil},
+		{"OpenListTag", `\[list`, nil},
 		{"OpenEndTag", `\[/`, nil},
-		{"CloseTag", `]`, nil},
-		// {"Assign", `=`, nil},
-		// {"OpenTag", `\[[^\]]+\]`, nil},
-		// {"CloseTag", `\[/[^\]]+\]`, nil},
-		{"Word", `[^\s[\]]+`, nil},
+		{"OpenStartTag", `\[`, nil},
+		{"CloseTag", `\]`, nil},
+		{"Assign", `=`, nil},
+
+		{"Word", `[^\s\[=\]]+`, nil},
 	})
 	bbcodeParser := participle.MustBuild(&BBCode{}, participle.Lexer(bbcodeLexer))
 
@@ -77,10 +90,28 @@ func (c *BBCode) ToMd(b *strings.Builder) {
 func (e *BBElem) ToMd(b *strings.Builder) {
 	if e.Word != nil {
 		b.WriteString(*e.Word)
-	} else {
+	} else if e.Tag != nil {
 		e.Tag.ToMd(b)
+	} else {
+		e.List.ToMd(b)
 	}
 }
+
+func (l *BBList) ToMd(b *strings.Builder) {
+	var listMarker string
+	if l.Type != nil && *l.Type == "1" {
+		listMarker = "1. "
+	} else {
+		listMarker = "- "
+	}
+	for _, e := range l.Items {
+		b.WriteString(listMarker)
+		e.ToMd(b)
+		b.WriteString("\n")
+	}
+}
+
+type complicatedMdifierFunc func(*BBTag, *strings.Builder)
 
 func (t *BBTag) ToMd(b *strings.Builder) {
 	simpleNameMap := map[string]string{
@@ -88,25 +119,36 @@ func (t *BBTag) ToMd(b *strings.Builder) {
 		"i":    "_",
 		"code": "`",
 	}
-	if n, present := simpleNameMap[*t.Name]; present {
+	complicatedNameMap := map[string]complicatedMdifierFunc{
+		"link": makeLink,
+	}
+	if f, present := complicatedNameMap[*t.Name]; present {
+		t.Attrs.Attrs = make(map[string]string)
+		for _, a := range t.Attrs.RawAttrs {
+			t.Attrs.Attrs[*a.Key] = *a.Value
+		}
+		f(t, b)
+	} else if n, present := simpleNameMap[*t.Name]; present {
 		b.WriteString(n)
 		t.Body.ToMd(b)
 		b.WriteString(n)
 	} else {
 		t.Body.ToMd(b)
 	}
-	// // This would be nicer using an interface to implement a type union
-	// if t.Bold != nil {
-	//	b.WriteString("**")
-	//	t.Bold.ToMd(b)
-	//	b.WriteString("**")
-	// } else if t.Italic != nil {
-	//	b.WriteString("_")
-	//	t.Italic.ToMd(b)
-	//	b.WriteString("_")
-	// } else if t.Code != nil {
-	//	b.WriteString("`")
-	//	t.Code.ToMd(b)
-	//	b.WriteString("`")
-	// }
+}
+
+func makeLink(t *BBTag, b *strings.Builder) {
+	if l, p := t.Attrs.Attrs["url"]; p {
+		b.WriteString("[")
+		t.Body.ToMd(b)
+		b.WriteString("](")
+		b.WriteString(l)
+		b.WriteString(")")
+	} else {
+		b.WriteString("[")
+		t.Body.ToMd(b)
+		b.WriteString("](")
+		t.Body.ToMd(b)
+		b.WriteString(")")
+	}
 }
