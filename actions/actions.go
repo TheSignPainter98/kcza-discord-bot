@@ -31,11 +31,21 @@ func (msg MessageAction) Act(s *discordgo.Session) {
 func LongMessage(channel string, msg string) ActionSeq {
 	n := len(msg)
 	const blockSize = 2000
+	const rollBackMax = blockSize / 10
 
 	seq := make(ActionSeq, 0, 1+n/blockSize)
 
 	for i := 0; i < n; i += blockSize {
-		seq = append(seq, MessageAction{channel, string(msg[i:intMin(i+blockSize, n-1)])})
+		// Try to roll back
+		intendedMax := intMin(i+blockSize, n-1)
+		rollBack := 0
+		for rollBack <= rollBackMax && msg[intendedMax-rollBack] != ' ' && msg[intendedMax-rollBack] != '\t' {
+			rollBack++
+		}
+		intendedMax -= rollBack
+
+		seq = append(seq, MessageAction{channel, string(msg[i:intendedMax])})
+		i -= rollBack
 	}
 
 	return seq
