@@ -154,11 +154,7 @@ func makeLink(t *BBTag, b *strings.Builder) {
 		b.WriteString(l)
 		b.WriteString(")")
 	} else {
-		b.WriteString("[")
 		t.Body.ToMd(b)
-		b.WriteString("](")
-		t.Body.ToMd(b)
-		b.WriteString(")")
 	}
 }
 
