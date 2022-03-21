@@ -40,7 +40,7 @@ type BBAttrs struct {
 }
 
 type BBAttr struct {
-	Key   *string `@Word "="`
+	Key   *string `@Word? "="`
 	Value *string `@Word`
 }
 
