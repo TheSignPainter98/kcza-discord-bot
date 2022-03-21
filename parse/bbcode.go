@@ -17,9 +17,14 @@ type BBCode struct {
 }
 
 type BBElem struct {
-	List *BBList `  @@`
-	Tag  *BBTag  `| @@`
-	Word *string `| (@Word | @Assign)`
+	LoneTag *BBLoneTag `  @@`
+	List    *BBList    `| @@`
+	Tag     *BBTag     `| @@`
+	Word    *string    `| @(Word|Assign)`
+}
+
+type BBLoneTag struct {
+	Name *string `@KnownLoneTag`
 }
 
 type BBList struct {
@@ -58,6 +63,7 @@ func parseBBCode(bbcRaw string) (*BBCode, error) {
 	bbcodeLexer := lexer.MustSimple([]lexer.Rule{
 		{"whitespace", `[\s\r\n]+`, nil}, // (Auto-ignores white-space)
 
+		{"KnownLoneTag", `(?i:\[(select|ic)\])`, nil}, // This should be replaced with back-tracking to generalise! :(
 		{"ListItem", `\[\*\]`, nil},
 		{"OpenListTag", `\[list`, nil},
 		{"OpenEndTag", `\[/`, nil},
@@ -92,8 +98,10 @@ func (e *BBElem) ToMd(b *strings.Builder) {
 		b.WriteString(*e.Word)
 	} else if e.Tag != nil {
 		e.Tag.ToMd(b)
-	} else {
+	} else if e.List != nil {
 		e.List.ToMd(b)
+	} else {
+		e.LoneTag.ToMd(b)
 	}
 }
 
@@ -160,4 +168,8 @@ func makeImg(t *BBTag, b *strings.Builder) {
 	b.WriteString("](")
 	t.Body.ToMd(b)
 	b.WriteString(")")
+}
+
+func (l *BBLoneTag) ToMd(b *strings.Builder) {
+	b.WriteString(*l.Name)
 }
