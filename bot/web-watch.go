@@ -89,7 +89,7 @@ func (g WebWatcher) Watch(act chan actions.DiscordAction) {
 
 		act <- actions.MessageAction{g.OutputChannel, fmt.Sprintf("Geekhack update for %v!", g.Name)}
 		act <- actions.MessageAction{g.OutputChannel, "This is another quite quick message"}
-		act <- actions.LongMessage(g.OutputChannel, bbc)
+		act <- actions.LongMessage(g.OutputChannel, bbc, 0)
 		time.Sleep(5 * time.Minute)
 	}
 }
