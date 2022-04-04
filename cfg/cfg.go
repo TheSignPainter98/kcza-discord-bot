@@ -25,5 +25,13 @@ func ReadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	cfg.sanitise()
+
 	return cfg, nil
+}
+
+func (cfg *Config) sanitise() {
+	if cfg.WebWatcherSource == "" {
+		cfg.WebWatcherSource = "./web-watchers.json"
+	}
 }
