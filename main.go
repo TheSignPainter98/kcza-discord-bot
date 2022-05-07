@@ -19,5 +19,8 @@ func main() {
 		return
 	}
 
-	kczaBot.HandleActions()
+	if err := kczaBot.HandleActions(); err != nil {
+		fmt.Println(err)
+		return
+	}
 }

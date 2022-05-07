@@ -8,7 +8,7 @@ import (
 )
 
 type DiscordAction interface {
-	Act(*discordgo.Session)
+	Act(*discordgo.Session) error
 }
 
 type ActionSeq []DiscordAction
@@ -23,15 +23,21 @@ type TypingAction struct {
 	PauseDuration float64
 }
 
-func (seq ActionSeq) Act(s *discordgo.Session) {
+func (seq ActionSeq) Act(s *discordgo.Session) error {
 	for _, a := range seq {
-		a.Act(s)
+		if e := a.Act(s); e != nil {
+			return e
+		}
 	}
+	return nil
 }
 
-func (msg MessageAction) Act(s *discordgo.Session) {
-	fmt.Printf("Sending message of length %d to channel %s: %#v\n", len(msg.Message), msg.Channel, msg.Message)
-	s.ChannelMessageSend(msg.Channel, msg.Message)
+func (msg MessageAction) Act(s *discordgo.Session) (err error) {
+	if len(msg.Message) > 0 {
+		fmt.Printf("Sending message of length %d to channel %s\n", len(msg.Message), msg.Channel)
+		_, err = s.ChannelMessageSend(msg.Channel, msg.Message)
+	}
+	return
 }
 
 func LongMessage(channel string, msg string, typingDuration float64) ActionSeq {
@@ -73,8 +79,10 @@ func breakable(r rune) (canBreak bool) {
 	return
 }
 
-func (t TypingAction) Act(s *discordgo.Session) {
-	s.ChannelTyping(t.Channel)
+func (t TypingAction) Act(s *discordgo.Session) error {
+	if err := s.ChannelTyping(t.Channel); err != nil {
+		return err
+	}
 
 	fmt.Printf("Using duration %f\n", t.PauseDuration)
 	if t.PauseDuration > 0 {
@@ -82,6 +90,7 @@ func (t TypingAction) Act(s *discordgo.Session) {
 		time.Sleep(delay)
 		fmt.Printf("Done waiting %#v\n", delay)
 	}
+	return nil
 }
 
 func intMin(a, b int) int {

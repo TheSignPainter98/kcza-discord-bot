@@ -55,8 +55,9 @@ func New(config *cfg.Config) (*KczaBot, error) {
 	return bot, nil
 }
 
-func (bot KczaBot) HandleActions() {
-	fmt.Println("Handling actions and there are ", len(bot.watchers), " of them")
+func (bot KczaBot) HandleActions() error {
+	fmt.Printf("Handling actions and there are %d of them\n", len(bot.watchers))
+
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
@@ -68,10 +69,12 @@ func (bot KczaBot) HandleActions() {
 		fmt.Println("Awaiting action...")
 		select {
 		case <-sig:
-			return
+			return nil
 		case action := <-bot.actionChannel:
-			fmt.Println("Acting upon: " + fmt.Sprintf("%#v", action))
-			action.Act(bot.session)
+			fmt.Printf("Acting upon %v\n", action)
+			if err := action.Act(bot.session); err != nil {
+				return err
+			}
 		}
 	}
 }
